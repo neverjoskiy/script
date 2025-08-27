@@ -128,10 +128,12 @@ function play(guildId, song) {
         filter: 'audioonly',
         quality: 'highestaudio',
         highWaterMark: 1 << 25,
+        lang: 'en',
         requestOptions: {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
-                'Referer': 'https://www.youtube.com'
+                'Referer': 'https://www.youtube.com',
+                'Accept-Language': 'en-US,en;q=0.9'
             },
             maxRedirects: 20,
             timeout: 60000
@@ -158,7 +160,7 @@ function play(guildId, song) {
     });
 }
 
-// HTTP-сервер для удержания бота
+// HTTP-сервер для Render
 const PORT = process.env.PORT || 3000;
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
