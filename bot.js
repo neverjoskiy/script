@@ -1,18 +1,11 @@
-// === МУЗЫКАЛЬНЫЙ БОТ ДЛЯ RAILWAY.APP ===
-// Автозапуск, защита от сна, работает 24/7
-
+// bot.js
+require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
-const {
-    createAudioPlayer,
-    createAudioResource,
-    joinVoiceChannel,
-    NoSubscriberBehavior
-} = require('@discordjs/voice');
-const ytdl = require('ytdl-core');
+const { createAudioPlayer, createAudioResource, joinVoiceChannel, NoSubscriberBehavior } = require('@discordjs/voice');
+const ytdl = require('@distube/ytdl-core');
 const ytSearch = require('yt-search');
 const http = require('http');
 
-// Создаём клиента
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -22,15 +15,12 @@ const client = new Client({
     ]
 });
 
-// Хранилище очереди
 const queue = new Map();
 
-// Бот готов
 client.once('clientReady', () => {
-    console.log(`✅ Бот ${client.user.tag} готов! Работает на Railway.`);
+    console.log(`✅ Бот ${client.user.tag} готов!`);
 });
 
-// Обработка сообщений
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
     if (!message.content.startsWith('!')) return;
@@ -41,7 +31,6 @@ client.on('messageCreate', async message => {
     const { channel: voiceChannel } = message.member.voice;
     const guildId = message.guild.id;
 
-    // Команда: play / p
     if (command === 'play' || command === 'p') {
         if (!voiceChannel) return message.reply('🔊 Сначала подключись к голосовому каналу!');
         if (!args.length) return message.reply('🎵 Укажи название или ссылку!');
@@ -84,7 +73,6 @@ client.on('messageCreate', async message => {
         }
     }
 
-    // Остальные команды: skip, stop, pause, resume, queue
     if (command === 'skip') {
         const serverQueue = queue.get(guildId);
         if (!serverQueue) return message.reply('❌ Нет активной очереди.');
@@ -124,7 +112,6 @@ client.on('messageCreate', async message => {
     }
 });
 
-// Функция проигрывания
 function play(guildId, song) {
     const serverQueue = queue.get(guildId);
     if (!serverQueue) return;
@@ -150,24 +137,28 @@ function play(guildId, song) {
             play(guildId, serverQueue.songs[0]);
         }
     });
+
+    serverQueue.player.on('error', (error) => {
+        console.error('❌ Ошибка плеера:', error);
+        serverQueue.textChannel.send(`⚠️ Ошибка: \`${error.message}\``);
+        serverQueue.songs.shift();
+        play(guildId, serverQueue.songs[0]);
+    });
 }
 
-// 🔁 HTTP-сервер для "пробуждения" бота (чтобы не спал на Railway)
+// HTTP-сервер для удержания бота в активном состоянии
 const PORT = process.env.PORT || 3000;
 const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(`Музыкальный бот работает! Подключено к ${client.guilds.cache.size} серверам.`);
+    res.end('Музыкальный бот работает!');
 });
-
 server.listen(PORT, () => {
     console.log(`🌐 HTTP-сервер запущен на порту ${PORT}`);
 });
 
-// 🚀 Запуск бота
+// Запуск бота
 const TOKEN = process.env.TOKEN;
 if (!TOKEN) {
     console.error('❌ ОШИБКА: Токен не найден! Установи переменную TOKEN в настройках Railway.');
     process.exit(1);
 }
-
 client.login(TOKEN);
